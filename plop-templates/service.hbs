@@ -1,0 +1,15 @@
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { {{pascalCase name}}, {{pascalCase name}}Document } from './schemas/{{kebabCase name}}.schema';
+import { Create{{pascalCase name}}Dto } from './dto/create-{{kebabCase name}}.dto';
+
+@Injectable()
+export class {{pascalCase name}}Service {
+  constructor(@InjectModel({{pascalCase name}}.name) private {{camelCase name}}Model: Model<{{pascalCase name}}Document>) {}
+
+  async create(create{{pascalCase name}}Dto: Create{{pascalCase name}}Dto): Promise<{{pascalCase name}}Document> {
+    const new{{pascalCase name}} = new this.{{camelCase name}}Model(create{{pascalCase name}}Dto);
+    return new{{pascalCase name}}.save();
+  }
+}

@@ -1,0 +1,13 @@
+import { Controller, Post, Body } from '@nestjs/common';
+import { {{pascalCase name}}Service } from './{{kebabCase name}}.service';
+import { Create{{pascalCase name}}Dto } from './dto/create-{{kebabCase name}}.dto';
+
+@Controller('{{kebabCase name}}')
+export class {{pascalCase name}}Controller {
+  constructor(private {{camelCase name}}Service: {{pascalCase name}}Service) {}
+
+  @Post()
+  async create(@Body() create{{pascalCase name}}Dto: Create{{pascalCase name}}Dto) {
+    return this.{{camelCase name}}Service.create(create{{pascalCase name}}Dto);
+  }
+}
