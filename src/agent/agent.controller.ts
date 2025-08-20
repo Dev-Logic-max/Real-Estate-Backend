@@ -11,7 +11,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiCreatedResponse, ApiOkResponse
 @ApiTags('Agent')
 @Controller('agent')
 export class AgentController {
-  constructor(private readonly agentService: AgentService) {}
+  constructor(private readonly agentService: AgentService) { }
 
   // POST /agent/request - Request to become agent
   @Post('request')
@@ -64,6 +64,17 @@ export class AgentController {
   @ApiOkResponse({ description: 'Agents retrieved' })
   findAll() {
     return this.agentService.findAll();
+  }
+
+  // GET /agent/requests - Get all pending agent requests (admin only)
+  @Get('requests')
+  @ApiOperation({ summary: 'Get all pending agent requests', description: 'Retrieves all pending agent requests for admin review.' })
+  @ApiBearerAuth('access-token')
+  @ApiOkResponse({ description: 'Pending requests retrieved' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.Admin)
+  findPendingRequests() {
+    return this.agentService.findPendingRequests();
   }
 
   // GET /agent/:id - Get agent details

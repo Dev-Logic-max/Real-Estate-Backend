@@ -42,6 +42,15 @@ export class AuthService {
         return this.login({ email: user.email, password: registerUserDto.password });  // Return JWT after registration
     }
 
+    async getVerifiedUser(userId: string): Promise<UserDocument> {
+        const user = await this.userService.findById(userId);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+        const { password, address, phone, profilePhotos, connections, createdAt, updatedAt, __v, ...result } = user.toObject(); // Exclude password
+        return result as UserDocument;
+    }
+
     async refreshToken(user: any): Promise<{ access_token: string }> {
         const payload = { email: user.email, sub: user._id, roles: user.roles };
         return {
