@@ -4,6 +4,7 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { RegisterUserDto } from 'src/users/dto/register-user.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { UserDocument } from 'src/users/schemas/user.schema';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -52,8 +53,9 @@ export class AuthController {
     description: 'Token valid', 
     schema: { properties: { user: { $ref: '#/components/schemas/User' }, valid: { type: 'boolean' } } } 
   })
-  async verify(@Request() req) {
-    return { user: req.user, valid: true };
+  async verify(@Request() req): Promise<{ user: UserDocument; valid: boolean }> {
+    const user = await this.authService.getVerifiedUser(req.user.userId); // Fetch full user data
+    return { user, valid: true };
   }
 
   // POST /auth/refresh - Refresh JWT token

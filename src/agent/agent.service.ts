@@ -13,7 +13,7 @@ export class AgentService {
   constructor(
     @InjectModel(Agent.name) private agentModel: Model<AgentDocument>,
     private usersService: UsersService,
-  ) {}
+  ) { }
 
   async requestAgent(userId: string, agentData: CreateAgentDto): Promise<AgentDocument> {
     const existing = await this.agentModel.findOne({ userId });
@@ -81,6 +81,10 @@ export class AgentService {
 
   async findAll(): Promise<AgentDocument[]> {
     return this.agentModel.find({ status: 'approved' }).exec();
+  }
+
+  async findPendingRequests(): Promise<AgentDocument[]> {
+    return this.agentModel.find({ status: 'pending' }).exec();
   }
 
   async findOne(id: string): Promise<AgentDocument> {
