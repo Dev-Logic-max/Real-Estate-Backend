@@ -71,6 +71,22 @@ export class UsersController {
         return this.userService.findAllUsers(query);
     }
 
+    // GET /users/active-agents - List active agents
+    @Get('active-agents')
+    @ApiOperation({
+        summary: 'List active agents',
+        description: 'Retrieves a list of users with role Agent (5) and status active.'
+    })
+    @ApiBearerAuth('access-token')
+    @ApiOkResponse({
+        description: 'List of active agents retrieved',
+        schema: { properties: { users: { type: 'array', items: { $ref: '#/components/schemas/User' } }, total: { type: 'number' } } }
+    })
+    @UseGuards(JwtAuthGuard)
+    async getActiveAgents() {
+        return this.userService.findActiveAgents();
+    }
+
     // DELETE /users/:id - Delete user (admin only)
     @Delete(':id')
     @ApiOperation({ summary: 'Delete user by ID', description: 'Allows admins to delete a user by ID.' })

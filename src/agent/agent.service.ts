@@ -7,12 +7,14 @@ import { UpdateAgentDto } from './dto/update-agent.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from 'src/users/users.service';
 import { RoleEnum } from 'src/common/enums/role.enum';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class AgentService {
   constructor(
     @InjectModel(Agent.name) private agentModel: Model<AgentDocument>,
     private usersService: UsersService,
+    private notificationService: NotificationService,
   ) { }
 
   async requestAgent(userId: string, agentData: CreateAgentDto): Promise<AgentDocument> {
@@ -41,6 +43,18 @@ export class AgentService {
       user?.roles.push(RoleEnum.Agent);
       await user?.save();
     }
+
+    // Send notification (example)
+    await this.notificationService.send({
+      userId: agent.userId.toString(),
+      message: `Your agent request has been approved. License: ${agent.license}`,
+      type: 'in-app',
+      allowedRoles: [RoleEnum.Agent],
+      purpose: 'agent_approved',
+      relatedId: agent._id?.toString(),
+      relatedModel: 'Agent',
+    });
+    
     return agent;
   }
 
@@ -48,8 +62,20 @@ export class AgentService {
     const agent = await this.agentModel.findById(id).exec();
     if (!agent) throw new NotFoundException('Agent request not found');
     agent.status = 'rejected';
-    return agent.save();
+    await agent.save();
+
     // Send notification
+    await this.notificationService.send({
+      userId: agent.userId.toString(),
+      message: 'Your agent request has been rejected.',
+      type: 'in-app',
+      allowedRoles: [RoleEnum.User],
+      purpose: 'agent_rejected',
+      relatedId: agent._id?.toString(),
+      relatedModel: 'Agent',
+    });
+
+    return agent;
   }
 
   async create(createAgentDto: CreateAgentDto, userId: string): Promise<AgentDocument> {
@@ -79,8 +105,15 @@ export class AgentService {
     return savedAgent;
   }
 
-  async findAll(): Promise<AgentDocument[]> {
-    return this.agentModel.find({ status: 'approved' }).exec();
+  async findAllWithUserData(): Promise<{ agent: AgentDocument; user: any }[]> {
+    const agents = await this.agentModel.find({ status: 'approved' }).exec();
+    const result = await Promise.all(
+      agents.map(async (agent) => {
+        const user = await this.usersService.findById(agent.userId.toString());
+        return { agent, user };
+      }),
+    );
+    return result;
   }
 
   async findPendingRequests(): Promise<AgentDocument[]> {
@@ -91,6 +124,10 @@ export class AgentService {
     const agent = await this.agentModel.findById(id).exec();
     if (!agent) throw new NotFoundException('Agent not found');
     return agent;
+  }
+
+  async findByUserId(userId: string): Promise<AgentDocument | null> {
+    return this.agentModel.findOne({ userId }).exec();
   }
 
   async update(id: string, updateAgentDto: UpdateAgentDto): Promise<AgentDocument> {

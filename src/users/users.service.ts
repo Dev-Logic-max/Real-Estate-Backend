@@ -8,7 +8,7 @@ import { QueryUserDto } from './dto/query-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RoleEnum } from 'src/common/enums/role.enum';
 import { StatusEnum } from 'src/common/enums/status.enum';
-import { NotificationService } from 'src/notification/notification.service';
+// import { NotificationService } from 'src/notification/notification.service';
 import { HistoryService } from 'src/history/history.service';
 // import { AgentService } from 'src/agent/agent.service';
 
@@ -16,7 +16,7 @@ import { HistoryService } from 'src/history/history.service';
 export class UsersService {
     constructor(
         @InjectModel(User.name) private userModel: Model<UserDocument>,
-        private notificationService: NotificationService,
+        // private notificationService: NotificationService,
         private historyService: HistoryService,
         // private agentService: AgentService,
     ) { }
@@ -72,6 +72,18 @@ export class UsersService {
         return { users, total };
     }
 
+    async findActiveAgents(): Promise<{ users: UserDocument[]; total: number }> {
+        const filter: any = {
+            roles: { $in: [RoleEnum.Agent] }, // Role 5 for Agent
+            status: StatusEnum.Active,
+        };
+
+        const users = await this.userModel.find(filter).exec();
+        const total = await this.userModel.countDocuments(filter).exec();
+
+        return { users, total };
+    }
+
     async deleteUser(id: string): Promise<void> {
         const user = await this.findById(id);
         if (!user) throw new NotFoundException('User not found');
@@ -79,7 +91,7 @@ export class UsersService {
             throw new UnauthorizedException('Cannot delete an admin user');
         }
         await this.userModel.deleteOne({ _id: id }).exec();
-        await this.notificationService.send(id, 'Your account has been deleted by an admin.');
+        // await this.notificationService.send(id, 'Your account has been deleted by an admin.');
         await this.historyService.log('user_deleted', id, undefined, { deletedBy: 'admin' });
     }
 
@@ -93,28 +105,10 @@ export class UsersService {
         user.roles.push(RoleEnum[`Pending${role.charAt(0).toUpperCase() + role.slice(1)}` as keyof typeof RoleEnum] || RoleEnum.User);
         // Custom pending role
         await user.save();
-        await this.notificationService.send(userId, `Role upgrade request for ${role} sent to admin.`);
+        // await this.notificationService.send(userId, `Role upgrade request for ${role} sent to admin.`);
         await this.historyService.log('role_request', userId, undefined, { role });
         return { message: 'Request sent' };
     }
-
-    // async upgradeRole(id: string, role: string, approve: boolean): Promise<UserDocument> {
-    //     const user = await this.findById(id);
-    //     if (!user) throw new NotFoundException('User not found');
-    //     const pendingRole = user.roles.find(r => r.toString().startsWith('Pending'));
-    //     if (!pendingRole) throw new BadRequestException('No pending role request');
-    //     if (approve) {
-    //         user.roles = user.roles.filter(r => r !== pendingRole);
-    //         user.roles.push(RoleEnum[role.charAt(0).toUpperCase() + role.slice(1)]);
-    //         await this.notificationService.send(id, `Your request to become a ${role} has been approved.`);
-    //     } else {
-    //         user.roles = user.roles.filter(r => r !== pendingRole);
-    //         await this.notificationService.send(id, `Your request to become a ${role} has been rejected.`);
-    //     }
-    //     await user.save();
-    //     await this.historyService.log('role_upgrade', id, undefined, { role, approved: approve });
-    //     return user;
-    // }
 
     async upgradeRole(userId: string, role: string, approve: boolean): Promise<UserDocument> {
         const user = await this.userModel.findById(userId).exec();

@@ -7,12 +7,16 @@ import { UpdatePropertyDto } from './dto/update-property.dto';
 import { SearchPropertyDto } from './dto/search-property.dto';
 import { RoleEnum } from 'src/common/enums/role.enum';
 import { UploadService } from 'src/uploads/upload.service';
+import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
+import { NotificationService } from 'src/notification/notification.service';
+import { NotificationPurposeEnum } from 'src/common/enums/notification.enum';
 
 @Injectable()
 export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<PropertyDocument>,
     private uploadService: UploadService, // Inject UploadService
+    private notificationService: NotificationService,
   ) { }
 
   async create(createPropertyDto: CreatePropertyDto, user: any): Promise<PropertyDocument> {
@@ -24,7 +28,21 @@ export class PropertyService {
       ownerId: user.userId,
       agents: [], // Initialize agents array
     });
-    return newProperty.save();
+    const savedProperty = await newProperty.save();
+
+    // Send notification to allowed roles
+    const notificationDto: CreateNotificationDto = {
+      userId: user.userId, // Owner gets notified too
+      message: `A new property "${createPropertyDto.title}" has been created by ${user.firstName} ${user.lastName || ''}.`,
+      type: 'in-app',
+      allowedRoles: [RoleEnum.Admin, RoleEnum.Seller], // Notify admins and sellers
+      purpose: NotificationPurposeEnum.PROPERTY_CREATED,
+      relatedId: savedProperty._id?.toString(),
+      relatedModel: 'Property',
+    };
+    await this.notificationService.send(notificationDto);
+
+    return savedProperty;
   }
 
   async findAll(searchDto: SearchPropertyDto): Promise<{ properties: PropertyDocument[]; total: number }> {
@@ -102,7 +120,7 @@ export class PropertyService {
     if (!agentUser.roles.includes(RoleEnum.Agent)) throw new UnauthorizedException('Only agents can send deal requests');
     const limit = property.type === 'rent' ? 2 : 4;
     if (property.agents.length >= limit) throw new BadRequestException('Agent limit reached');
-    property.agents.push({ agentId: agentUser.userId, commissionRate: dealData.commissionRate, terms: dealData.terms, status: 'pending' });
+    property.agents.push({ agentId: agentUser.userId, commissionRate: dealData.commissionRate, terms: dealData.terms, status: agentUser.status, phone: agentUser.phone });
     await property.save();
     // Send notification to owner
     // Example: await this.notificationService.send(property.ownerId.toString(), `New deal request from agent ${agentUser.userId}`);

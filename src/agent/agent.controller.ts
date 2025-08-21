@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, NotFoundException } from '@nestjs/common';
 import { AgentService } from './agent.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
@@ -7,11 +7,15 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { RoleEnum } from 'src/common/enums/role.enum';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiCreatedResponse, ApiOkResponse, ApiParam } from '@nestjs/swagger';
+import { UsersService } from 'src/users/users.service';
 
 @ApiTags('Agent')
 @Controller('agent')
 export class AgentController {
-  constructor(private readonly agentService: AgentService) { }
+  constructor(
+    private agentService: AgentService,
+    private usersService: UsersService,
+  ) {}
 
   // POST /agent/request - Request to become agent
   @Post('request')
@@ -60,10 +64,10 @@ export class AgentController {
 
   // GET /agent - Get approved agents
   @Get()
-  @ApiOperation({ summary: 'Get all approved agents', description: 'Retrieves approved agents.' })
-  @ApiOkResponse({ description: 'Agents retrieved' })
-  findAll() {
-    return this.agentService.findAll();
+  @ApiOperation({ summary: 'Get all approved agents with user data', description: 'Retrieves a list of all approved agents along with their associated user data.' })
+  @ApiOkResponse({ description: 'List of agents Agents with user data retrieved' })
+  async getAllAgentsWithUserData() {
+    return this.agentService.findAllWithUserData();
   }
 
   // GET /agent/requests - Get all pending agent requests (admin only)
@@ -108,5 +112,30 @@ export class AgentController {
   @Roles(RoleEnum.Admin)
   remove(@Param('id') id: string) {
     return this.agentService.remove(id);
+  }
+
+  @Get(':userId')
+  @ApiOperation({
+    summary: 'Get user and agent data by user ID',
+    description: 'Retrieves user details and corresponding agent data (if exists) for the given user ID.'
+  })
+  @ApiParam({ name: 'userId', description: 'User ID', type: String })
+  @ApiOkResponse({
+    description: 'User and agent data retrieved',
+    schema: {
+      type: 'object',
+      properties: {
+        user: { $ref: '#/components/schemas/User' },
+        agent: { $ref: '#/components/schemas/Agent' },
+      },
+    },
+  })
+  @UseGuards(JwtAuthGuard)
+  async getUserWithAgent(@Param('userId') userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const agent = await this.agentService.findByUserId(userId);
+    return { user, agent };
   }
 }

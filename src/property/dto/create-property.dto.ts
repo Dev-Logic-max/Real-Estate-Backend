@@ -51,7 +51,7 @@ export class CreatePropertyDto {
   @ApiPropertyOptional({ example: [{ agentId: '507f1f77bcf86cd799439011', commissionRate: 5, terms: 'Standard terms', status: 'pending' }], type: [Object] })
   @IsOptional()
   @IsArray()
-  agents?: { agentId: string; commissionRate: number; terms: string; status: string }[];
+  agents?: { agentId: string; commissionRate: number; terms: string; status: string; phone: string; avatar: string[] }[];
 
   @ApiPropertyOptional({ example: ['pool', 'gym'], type: [String] })
   @IsOptional()

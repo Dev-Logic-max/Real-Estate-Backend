@@ -45,7 +45,7 @@ export class Property {
     }],
     default: []
   })
-  agents: { agentId: Types.ObjectId; commissionRate: number; terms: string; status: string }[];
+  agents: { agentId: Types.ObjectId; commissionRate: number; terms?: string; status: string; phone?: string; firstName?: string; lastName?: string; profilePhotos?: string[] }[];
 
   // @Prop({ type: Types.ObjectId, ref: 'User' })
   // agentId?: Types.ObjectId; // Assigned agent

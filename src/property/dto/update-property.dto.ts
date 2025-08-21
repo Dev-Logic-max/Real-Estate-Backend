@@ -42,7 +42,7 @@ export class UpdatePropertyDto {
 
   @IsOptional()
   @IsArray()
-  agents?: { agentId: string; commissionRate: number; terms: string; status: string }[];
+  agents?: { agentId: string; commissionRate: number; terms?: string; status: string; phone?: string; firstName?: string; lastName?: string; profilePhotos?: string[] }[];
 
   @IsOptional()
   @IsArray()
