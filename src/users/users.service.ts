@@ -10,6 +10,9 @@ import { RoleEnum } from 'src/common/enums/role.enum';
 import { StatusEnum } from 'src/common/enums/status.enum';
 import { NotificationService } from 'src/notification/notification.service';
 import { HistoryService } from 'src/history/history.service';
+import { NotificationService } from 'src/notification/notification.service';
+import { NotificationPurposeEnum } from 'src/common/enums/notification.enum';
+import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
 // import { AgentService } from 'src/agent/agent.service';
 
 @Injectable()
@@ -19,6 +22,7 @@ export class UsersService {
         private notificationService: NotificationService,
         private historyService: HistoryService,
         // private agentService: AgentService,
+        private notificationService: NotificationService,
     ) { }
 
     async findByEmail(email: string): Promise<UserDocument | null> {
@@ -29,16 +33,44 @@ export class UsersService {
         return this.userModel.findById(userId).exec();
     }
 
-    async createUser(createUserDto: CreateUserDto): Promise<UserDocument> {
-        const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-        const newUser = new this.userModel({
-            ...createUserDto,
-            password: hashedPassword,
-            roles: createUserDto.roles || [RoleEnum.User], // Default to user [2] if not provided
-            status: createUserDto.status || StatusEnum.Active, // Default to "active" if not provided
-        });
-        return newUser.save();
-    }
+
+
+
+   async createUser(createUserDto: CreateUserDto): Promise<UserDocument> {
+  // Hash password
+  const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+  // Create new user object
+  const newUser = new this.userModel({
+    ...createUserDto,
+    password: hashedPassword,
+    roles: createUserDto.roles || [RoleEnum.User], // Default role: User
+    status: createUserDto.status || StatusEnum.Active, // Default status: Active
+  });
+
+  // Save user first so we can use the generated _id
+  const savedUser: UserDocument = await newUser.save();
+
+  // Send notification (Admins get notified when a new user registers)
+  const notificationDto: CreateNotificationDto = {
+    userId: savedUser._id ? savedUser._id.toString() : '', // New user also gets notified
+    message: `A new user "${savedUser.firstName} ${savedUser.lastName || ''}" has registered.`,
+    type: 'in-app',
+    allowedRoles: [RoleEnum.Admin], // Notify only admins about new registrations
+    purpose: NotificationPurposeEnum.USER_REGISTERED,
+    relatedId: savedUser._id?.toString(),
+    relatedModel: 'User',
+  };
+
+  await this.notificationService.send(notificationDto);
+
+  return savedUser;
+}
+
+
+
+
+
 
     async updateUserProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<UserDocument> {
         const user = await this.userModel.findByIdAndUpdate(userId, updateProfileDto, { new: true }).exec();
