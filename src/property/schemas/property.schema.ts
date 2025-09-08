@@ -41,7 +41,11 @@ export class Property {
       agentId: { type: Types.ObjectId, ref: 'User' },
       commissionRate: Number, 
       terms: String,
-      status: { type: String, enum: Object.values(StatusEnum), default: StatusEnum.Pending }
+      firstName: String,
+      lastName: String,
+      phone: String,
+      profilePhotos: [String],
+      status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }
     }],
     default: []
   })

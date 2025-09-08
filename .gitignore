@@ -5,6 +5,7 @@
 
 # Ignore .env file
 .env
+/uploads
 
 # Logs
 logs

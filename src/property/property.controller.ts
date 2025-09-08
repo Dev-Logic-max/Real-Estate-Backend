@@ -13,7 +13,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiCreatedResponse, ApiOkResponse
 @ApiTags('Property')
 @Controller('property')
 export class PropertyController {
-  constructor(private readonly propertyService: PropertyService) {}
+  constructor(private readonly propertyService: PropertyService) { }
 
   // POST /property - Create a new property (sellers, admins)
   @Post()
@@ -82,7 +82,21 @@ export class PropertyController {
   async uploadImage(@Param('id') id: string, @UploadedFiles() files: Express.Multer.File[], @Request() req) {
     if (!files || files.length === 0) throw new BadRequestException('No files uploaded');
     const paths = await this.propertyService.addImages(id, files, req.user);
-    return {image: paths};
+    return { image: paths };
+  }
+
+  // DELETE /property/:propertyId/images/:imageUrl - Delete a property image
+  @Delete(':propertyId/images/:imageUrl')
+  @ApiOperation({ summary: 'Delete property image', description: 'Allows owners or admins to delete a specific image from a property.' })
+  @ApiBearerAuth('access-token')
+  @ApiParam({ name: 'propertyId', description: 'Property ID', type: String })
+  @ApiParam({ name: 'imageUrl', description: 'Image URL to delete', type: String })
+  @ApiOkResponse({ description: 'Image deleted successfully' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.Seller, RoleEnum.Admin)
+  async removeImage(@Param('propertyId') propertyId: string, @Param('imageUrl') imageUrl: string, @Request() req) {
+    await this.propertyService.removeImage(propertyId, imageUrl, req.user);
+    return { propertyId, imageUrl, user: req.user, message: 'Image deleted successfully' };
   }
 
   // POST /property/:id/request - Submit inquiry

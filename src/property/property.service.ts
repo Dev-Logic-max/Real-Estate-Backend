@@ -10,6 +10,8 @@ import { UploadService } from 'src/uploads/upload.service';
 import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
 import { NotificationService } from 'src/notification/notification.service';
 import { NotificationPurposeEnum } from 'src/common/enums/notification.enum';
+import * as fs from 'fs/promises'; // Import fs promises API
+import * as path from 'path'; // Import path module
 
 @Injectable()
 export class PropertyService {
@@ -107,6 +109,36 @@ export class PropertyService {
     property.images.push(...newPaths);
     await property.save();
     return newPaths; // Return array of new paths
+  }
+
+  async removeImage(propertyId: string, imageUrl: string, user: any): Promise<{ message: string }> {
+    const property = await this.findOne(propertyId);
+    if (property.ownerId.toString() !== user.userId && !user.roles.includes(RoleEnum.Admin)) {
+      throw new UnauthorizedException('You can only delete images for your own properties');
+    }
+    if (!property.images || !property.images.includes(imageUrl)) {
+      throw new BadRequestException('Image not found in property');
+    }
+
+    // Construct the full file path
+    const basePath = './uploads/property';
+    const fileName = path.basename(imageUrl); // Extract filename (e.g., 'a1b2c3d4.jpg')
+    const filePath = path.join(basePath, fileName);
+
+    // Remove the image from the database
+    property.images = property.images.filter((img) => img !== imageUrl);
+    await property.save();
+
+    // Delete the file from the filesystem
+    try {
+      await fs.access(filePath); // Check if file exists
+      await fs.unlink(filePath); // Delete the file
+    } catch (error) {
+      console.warn(`File not found or could not be deleted: ${filePath}`, error);
+      // Optional: Throw an error or log for debugging, but proceed since DB is updated
+    }
+    
+    return { message: 'Image deleted successfully' };
   }
 
   async requestInquiry(id: string, inquiryData: { name: string; email: string; message: string }, user: any): Promise<void> {
