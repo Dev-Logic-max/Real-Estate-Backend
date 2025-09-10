@@ -58,6 +58,16 @@ export class PropertyController {
     return this.propertyService.findAll(searchDto);
   }
 
+  // GET /property/user/:userId - Get properties by owner user ID
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get properties by owner user ID', description: 'Retrieves all properties owned by a specific user.' })
+  @ApiParam({ name: 'userId', description: 'User ID', type: String })
+  @ApiOkResponse({ description: 'Properties retrieved', schema: { properties: { properties: { type: 'array' }, total: { type: 'number' } } } })
+  @UseGuards(JwtAuthGuard)
+  async getPropertiesByUserId(@Param('userId') userId: string) {
+    return this.propertyService.findByOwnerId(userId);
+  }
+
   // GET /property/:id - Get property details
   @Get(':id')
   @ApiOperation({ summary: 'Get property by ID', description: 'Retrieves a single property.' })

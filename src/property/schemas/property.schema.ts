@@ -6,40 +6,58 @@ export type PropertyDocument = Property & Document;
 
 @Schema({ timestamps: true })
 export class Property {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  ownerId: Types.ObjectId;
+
+  @Prop({ type: [String], default: [] })
+  images?: string[];
+
   @Prop({ required: true })
   title: string;
 
   @Prop()
   description?: string;
 
-  @Prop({ type: { type: String, enum: ['Point'], default: undefined }, coordinates: [Number] })
-  location?: { type: string; coordinates: number[] }; // GeoJSON for MongoDB
-
   @Prop({ required: true })
   price: number;
 
   @Prop()
+  bedrooms?: number;
+
+  @Prop()
+  bathrooms?: number;
+
+  @Prop()
+  parkingSpaces?: number;
+
+  @Prop()
   area?: number;
+
+  @Prop()
+  floorNumber?: number;
+
+  @Prop()
+  heatingSystem?: string;
+
+  @Prop()
+  coolingSystem?: string;
+
+  @Prop({ default: false })
+  isFurnished?: boolean;
 
   @Prop({ enum: ['sale', 'rent'], required: true })
   type: string;
 
-  @Prop({ type: [String], default: [] })
-  images?: string[];
+  @Prop()  // e.g., 'apartment', 'house'
+  propertyType?: string;
 
-  @Prop({ type: [String] })
-  videos?: string[]; // For video uploads
-
-  @Prop({ enum: Object.values(StatusEnum), default: StatusEnum.Pending })
-  status: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  ownerId: Types.ObjectId;
+  @Prop()  // e.g., 'residential', 'commercial'
+  purpose?: string;
 
   @Prop({
     type: [{
       agentId: { type: Types.ObjectId, ref: 'User' },
-      commissionRate: Number, 
+      commissionRate: Number,
       terms: String,
       firstName: String,
       lastName: String,
@@ -51,20 +69,8 @@ export class Property {
   })
   agents: { agentId: Types.ObjectId; commissionRate: number; terms?: string; status: string; phone?: string; firstName?: string; lastName?: string; profilePhotos?: string[] }[];
 
-  // @Prop({ type: Types.ObjectId, ref: 'User' })
-  // agentId?: Types.ObjectId; // Assigned agent
-
-  @Prop([String])
-  amenities?: string[];
-
-  @Prop()
-  contactName?: string;
-
-  @Prop()
-  contactEmail?: string;
-
-  @Prop()
-  contactNumber?: string;
+  @Prop({ type: { type: String, enum: ['Point'], default: undefined }, coordinates: { type: [Number] } })
+  location?: { type: string; coordinates: number[] }; // GeoJSON for MongoDB
 
   @Prop()
   availableFrom?: Date;
@@ -74,6 +80,15 @@ export class Property {
 
   @Prop()  // e.g., 'monthly' for rent
   rentPeriod?: string;
+
+  @Prop()
+  contactName?: string;
+
+  @Prop()
+  contactEmail?: string;
+
+  @Prop()
+  contactNumber?: string;
 
   @Prop()
   address?: string;
@@ -87,32 +102,20 @@ export class Property {
   @Prop()
   country?: string;
 
-  @Prop()
-  heatingSystem?: string;
+  @Prop([String])
+  amenities?: string[];
+
+  @Prop({ enum: Object.values(StatusEnum), default: StatusEnum.Pending })
+  status: string;
+
+  @Prop({ type: [String] })
+  videos?: string[]; // For video uploads
+
+  @Prop({ type: Number, default: 0 })
+  views?: number;
 
   @Prop()
-  coolingSystem?: string;
-
-  @Prop()
-  parkingSpaces?: number;
-
-  @Prop()
-  floorNumber?: number;
-
-  @Prop()
-  bathrooms?: number;
-
-  @Prop()
-  bedrooms?: number;
-
-  @Prop()  // e.g., 'apartment', 'house'
-  propertyType?: string;
-
-  @Prop()  // e.g., 'residential', 'commercial'
-  purpose?: string;
-
-  @Prop({ default: false })
-  isFurnished?: boolean;
+  listingDate?: Date;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);

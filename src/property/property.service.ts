@@ -68,6 +68,13 @@ export class PropertyService {
     return { properties, total };
   }
 
+  async findByOwnerId(userId: string): Promise<{ properties: PropertyDocument[]; total: number }> {
+    const filter: any = { ownerId: userId };
+    const properties = await this.propertyModel.find(filter).exec();
+    const total = await this.propertyModel.countDocuments(filter).exec();
+    return { properties, total };
+  }
+
   async findOne(id: string): Promise<PropertyDocument> {
     const property = await this.propertyModel.findById(id).exec();
     if (!property) throw new NotFoundException('Property not found');
