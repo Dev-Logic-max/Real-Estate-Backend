@@ -72,6 +72,12 @@ export class UsersService {
         return { users, total };
     }
 
+    async findUserById(userId: string): Promise<UserDocument> {
+        const user = await this.userModel.findById(userId).exec();
+        if (!user) throw new NotFoundException('User not found');
+        return user;
+    }
+
     async findActiveAgents(): Promise<{ users: UserDocument[]; total: number }> {
         const filter: any = {
             roles: { $in: [RoleEnum.Agent] }, // Role 5 for Agent

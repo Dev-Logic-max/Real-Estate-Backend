@@ -17,6 +17,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 import * as bcrypt from 'bcrypt';
+import { User } from './schemas/user.schema';
 
 @ApiTags('Users')
 @Controller('users')
@@ -69,6 +70,17 @@ export class UsersController {
     @Roles(RoleEnum.Admin)
     async findAll(@Query() query: QueryUserDto) {
         return this.userService.findAllUsers(query);
+    }
+
+    @Get(':id')
+    @ApiOperation({ summary: 'Get user by ID', description: 'Retrieves a specific user by their ID.' })
+    @ApiBearerAuth('access-token')
+    @ApiParam({ name: 'id', description: 'User ID', type: String })
+    @ApiOkResponse({ description: 'User retrieved', type: User })
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(RoleEnum.Admin)
+    async getUserById(@Param('id') id: string) {
+        return this.userService.findUserById(id);
     }
 
     // GET /users/active-agents - List active agents

@@ -23,7 +23,7 @@ export class PropertyController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleEnum.Seller, RoleEnum.Admin)
   create(@Body() createPropertyDto: CreatePropertyDto, @Request() req) {
-    return this.propertyService.create(createPropertyDto, req.user);
+    return this.propertyService.createProperty(createPropertyDto, req.user);
   }
 
   // PATCH /property/:id - Update property
@@ -35,7 +35,20 @@ export class PropertyController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleEnum.Seller, RoleEnum.Admin)
   update(@Param('id') id: string, @Body() updatePropertyDto: UpdatePropertyDto, @Request() req) {
-    return this.propertyService.update(id, updatePropertyDto, req.user);
+    return this.propertyService.updateProperty(id, updatePropertyDto, req.user);
+  }
+
+  // PATCH /property/:id/status - Update property status (admins only)
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update property status', description: 'Allows admins to update the status of a property.' })
+  @ApiBearerAuth('access-token')
+  @ApiParam({ name: 'id', description: 'Property ID', type: String })
+  @ApiBody({ type: Object, schema: { properties: { status: { type: 'string', enum: ['active', 'inactive', 'pending', 'suspended'] } } } })
+  @ApiOkResponse({ description: 'Property status updated' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleEnum.Admin)
+  updateStatus(@Param('id') id: string, @Body() updateStatusDto: { status: string }, @Request() req) {
+    return this.propertyService.updatePropertyStatusByAdmin(id, updateStatusDto, req.user);
   }
 
   // DELETE /property/:id - Delete property
@@ -47,15 +60,24 @@ export class PropertyController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleEnum.Admin, RoleEnum.Seller)
   remove(@Param('id') id: string, @Request() req) {
-    return this.propertyService.remove(id, req.user);
+    return this.propertyService.deleteProperty(id, req.user);
   }
 
-  // GET /property - Search properties with filters
-  @Get()
+  // GET /property - Get all & Search properties with filters
+  @Get('all')
   @ApiOperation({ summary: 'Search properties', description: 'Retrieves paginated properties with filters.' })
   @ApiOkResponse({ description: 'Properties retrieved', schema: { properties: { properties: { type: 'array' }, total: { type: 'number' } } } })
   findAll(@Query() searchDto: SearchPropertyDto) {
-    return this.propertyService.findAll(searchDto);
+    return this.propertyService.getAllProperties(searchDto);
+  }
+
+  // GET /property/approved - Get approved (active) properties with filters
+  @Get('approved')
+  @ApiOperation({ summary: 'Get approved properties', description: 'Retrieves paginated properties with status "active" and optional filters.' })
+  @ApiOkResponse({ description: 'Approved properties retrieved', schema: { properties: { properties: { type: 'array' }, total: { type: 'number' } } } })
+  @UseGuards(JwtAuthGuard) // Optional: Restrict to authenticated users if needed
+  async getApprovedProperties(@Query() searchDto: SearchPropertyDto) {
+    return this.propertyService.getApprovedProperties(searchDto);
   }
 
   // GET /property/user/:userId - Get properties by owner user ID
@@ -65,7 +87,7 @@ export class PropertyController {
   @ApiOkResponse({ description: 'Properties retrieved', schema: { properties: { properties: { type: 'array' }, total: { type: 'number' } } } })
   @UseGuards(JwtAuthGuard)
   async getPropertiesByUserId(@Param('userId') userId: string) {
-    return this.propertyService.findByOwnerId(userId);
+    return this.propertyService.getPropertyByOwnerId(userId);
   }
 
   // GET /property/:id - Get property details
@@ -74,7 +96,7 @@ export class PropertyController {
   @ApiParam({ name: 'id', description: 'Property ID', type: String })
   @ApiOkResponse({ description: 'Property found' })
   findOne(@Param('id') id: string) {
-    return this.propertyService.findOne(id);
+    return this.propertyService.getPropertyByPropertyId(id);
   }
 
   // POST /property/upload-property-images/:id - Upload property images

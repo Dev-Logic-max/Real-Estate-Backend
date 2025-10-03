@@ -31,6 +31,15 @@ export class Notification {
   @Prop({ type: String, enum: ['User', 'Property', 'Agent', 'Transaction'], required: true })
   relatedModel: string;
 
+  @Prop()
+  firstName?: string;
+
+  @Prop()
+  lastName?: string;
+
+  @Prop({ type: [String], default: [] })
+  profilePhotos?: string[];
+
   @Prop({ default: Date.now })
   createdAt: Date;
 }

@@ -26,6 +26,10 @@ export class SearchPropertyDto {
   type?: string;
 
   @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
   @IsNumber()
   page?: number = 1;
 
