@@ -45,7 +45,7 @@ export class Property {
   @Prop({ default: false })
   isFurnished?: boolean;
 
-  @Prop({ enum: ['sale', 'rent'], required: true })
+  @Prop({ enum: ['sale', 'rent', 'sold'], required: true })
   type: string;
 
   @Prop()  // e.g., 'apartment', 'house'

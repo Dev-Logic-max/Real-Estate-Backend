@@ -16,7 +16,7 @@ export class CreateNotificationDto {
   @IsEnum(['email', 'in-app', 'sms'], { message: 'Invalid notification type' })
   type: string;
 
-  @ApiProperty({ example: [RoleEnum.Admin, RoleEnum.Seller], type: [Number], enum: Object.values(RoleEnum) })
+  @ApiProperty({ example: [RoleEnum.Admin, RoleEnum.User], type: [Number], enum: Object.values(RoleEnum) })
   @IsArray({ message: 'Allowed roles must be an array' })
   @IsEnum(Object.values(RoleEnum), { each: true, message: 'Invalid role' })
   allowedRoles: number[];

@@ -167,7 +167,7 @@ export class UsersController {
 
     // POST /users/role-request - Request role upgrade
     @Post('role-request')
-    @ApiOperation({ summary: 'Request role upgrade', description: 'Users request roles like seller.' })
+    @ApiOperation({ summary: 'Request role upgrade', description: 'Users request roles upgrade.' })
     @ApiBearerAuth('access-token')
     @ApiBody({ type: Object, schema: { properties: { role: { type: 'string' } } } })
     @ApiOkResponse({ description: 'Request sent' })

@@ -15,13 +15,13 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiCreatedResponse, ApiOkResponse
 export class PropertyController {
   constructor(private readonly propertyService: PropertyService) { }
 
-  // POST /property - Create a new property (sellers, admins)
+  // POST /property - Create a new property (Users, admins)
   @Post()
-  @ApiOperation({ summary: 'Create a new property', description: 'Allows sellers, or admins to create properties.' })
+  @ApiOperation({ summary: 'Create a new property', description: 'Allows Users to create properties.' })
   @ApiBearerAuth('access-token')
   @ApiCreatedResponse({ description: 'Property created successfully', type: CreatePropertyDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.Seller, RoleEnum.Admin)
+  @Roles(RoleEnum.User, RoleEnum.Admin)
   create(@Body() createPropertyDto: CreatePropertyDto, @Request() req) {
     return this.propertyService.createProperty(createPropertyDto, req.user);
   }
@@ -33,7 +33,7 @@ export class PropertyController {
   @ApiParam({ name: 'id', description: 'Property ID', type: String })
   @ApiOkResponse({ description: 'Property updated', type: UpdatePropertyDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.Seller, RoleEnum.Admin)
+  @Roles(RoleEnum.User, RoleEnum.Admin)
   update(@Param('id') id: string, @Body() updatePropertyDto: UpdatePropertyDto, @Request() req) {
     return this.propertyService.updateProperty(id, updatePropertyDto, req.user);
   }
@@ -58,7 +58,7 @@ export class PropertyController {
   @ApiParam({ name: 'id', description: 'Property ID', type: String })
   @ApiOkResponse({ description: 'Property deleted' })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.Admin, RoleEnum.Seller)
+  @Roles(RoleEnum.Admin, RoleEnum.User)
   remove(@Param('id') id: string, @Request() req) {
     return this.propertyService.deleteProperty(id, req.user);
   }
@@ -67,6 +67,7 @@ export class PropertyController {
   @Get('all')
   @ApiOperation({ summary: 'Search properties', description: 'Retrieves paginated properties with filters.' })
   @ApiOkResponse({ description: 'Properties retrieved', schema: { properties: { properties: { type: 'array' }, total: { type: 'number' } } } })
+  @UseGuards(JwtAuthGuard) // Optional: Restrict to authenticated users if needed
   findAll(@Query() searchDto: SearchPropertyDto) {
     return this.propertyService.getAllProperties(searchDto);
   }
@@ -75,7 +76,6 @@ export class PropertyController {
   @Get('approved')
   @ApiOperation({ summary: 'Get approved properties', description: 'Retrieves paginated properties with status "active" and optional filters.' })
   @ApiOkResponse({ description: 'Approved properties retrieved', schema: { properties: { properties: { type: 'array' }, total: { type: 'number' } } } })
-  @UseGuards(JwtAuthGuard) // Optional: Restrict to authenticated users if needed
   async getApprovedProperties(@Query() searchDto: SearchPropertyDto) {
     return this.propertyService.getApprovedProperties(searchDto);
   }
@@ -109,7 +109,7 @@ export class PropertyController {
     schema: { type: 'array', items: { type: 'string' } }, // e.g., ["/property/a1b2c3d4.jpg", "/property/e5f6g7h8.png"]
   })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.Seller, RoleEnum.Admin) // Restrict to owners
+  @Roles(RoleEnum.User, RoleEnum.Admin) // Restrict to owners
   @UseInterceptors(FilesInterceptor('files', 12, { dest: './uploads/property' })) // Limit to 12 files
   async uploadImage(@Param('id') id: string, @UploadedFiles() files: Express.Multer.File[], @Request() req) {
     if (!files || files.length === 0) throw new BadRequestException('No files uploaded');
@@ -125,7 +125,7 @@ export class PropertyController {
   @ApiParam({ name: 'imageUrl', description: 'Image URL to delete', type: String })
   @ApiOkResponse({ description: 'Image deleted successfully' })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.Seller, RoleEnum.Admin)
+  @Roles(RoleEnum.User, RoleEnum.Admin)
   async removeImage(@Param('propertyId') propertyId: string, @Param('imageUrl') imageUrl: string, @Request() req) {
     await this.propertyService.removeImage(propertyId, imageUrl, req.user);
     return { propertyId, imageUrl, user: req.user, message: 'Image deleted successfully' };
@@ -164,7 +164,7 @@ export class PropertyController {
   @ApiBody({ type: Object, schema: { properties: { agentId: { type: 'string' } } } })
   @ApiOkResponse({ description: 'Deal accepted' })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleEnum.Seller)
+  @Roles(RoleEnum.User)
   acceptDeal(@Param('id') id: string, @Body() body: { agentId: string }, @Request() req) {
     return this.propertyService.acceptDeal(id, body.agentId, req.user);
   }

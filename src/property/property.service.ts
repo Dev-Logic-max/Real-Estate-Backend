@@ -1,30 +1,33 @@
 import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+
 import { Property, PropertyDocument } from './schemas/property.schema';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { SearchPropertyDto } from './dto/search-property.dto';
 import { UploadService } from 'src/uploads/upload.service';
-import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
 import { NotificationService } from 'src/notification/notification.service';
+import { CreateNotificationDto } from 'src/notification/dto/create-notification.dto';
+
 import { NotificationPurposeEnum } from 'src/common/enums/notification.enum';
 import { StatusEnum } from 'src/common/enums/status.enum';
 import { RoleEnum } from 'src/common/enums/role.enum';
-import * as fs from 'fs/promises'; // Import fs promises API
-import * as path from 'path'; // Import path module
+
+import * as fs from 'fs/promises'; 
+import * as path from 'path'; 
 
 @Injectable()
 export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<PropertyDocument>,
-    private uploadService: UploadService, // Inject UploadService
+    private uploadService: UploadService, 
     private notificationService: NotificationService,
   ) { }
 
   async createProperty(createPropertyDto: CreatePropertyDto, user: any): Promise<PropertyDocument> {
-    if (!user.roles.includes(RoleEnum.Seller) && !user.roles.includes(RoleEnum.Admin)) {
-      throw new UnauthorizedException('Only sellers, or admins can create properties');
+    if (!user.roles.includes(RoleEnum.User) && !user.roles.includes(RoleEnum.Admin)) {
+      throw new UnauthorizedException('Please create user account to create a property.');
     }
     const newProperty = new this.propertyModel({
       ...createPropertyDto,
@@ -33,12 +36,11 @@ export class PropertyService {
     });
     const savedProperty = await newProperty.save();
 
-    // Send notification to owner and allowed roles
     const notificationDto: CreateNotificationDto = {
       userId: user.userId, // Owner gets notified too
       message: `A new property "${createPropertyDto.title}" has been created by ${user.firstName} ${user.lastName || ''}.`,
       type: 'email',
-      allowedRoles: [RoleEnum.Admin, RoleEnum.Seller], // Notify admins and sellers
+      allowedRoles: [RoleEnum.Admin, RoleEnum.User], // Notify admins and users
       purpose: NotificationPurposeEnum.PROPERTY_CREATED,
       relatedId: savedProperty._id?.toString(),
       relatedModel: 'Property',
@@ -76,6 +78,23 @@ export class PropertyService {
     if (property.ownerId.toString() !== user.userId && !user.roles.includes(RoleEnum.Admin)) {
       throw new UnauthorizedException('You can only delete your own properties');
     }
+
+    if (property.images && property.images.length > 0) {
+      const basePath = './uploads/property';
+      await Promise.all(
+        property.images.map(async (imageUrl) => {
+          const fileName = path.basename(imageUrl);
+          const filePath = path.join(basePath, fileName);
+          try {
+            await fs.access(filePath);
+            await fs.unlink(filePath);
+          } catch (error) {
+            console.warn(`File not found or could not be deleted: ${filePath}`, error);
+          }
+        }),
+      );
+    }
+
     await this.propertyModel.deleteOne({ _id: id });
 
     // Send notification to owner
@@ -93,7 +112,6 @@ export class PropertyService {
 
   async getAllProperties(searchDto: SearchPropertyDto): Promise<{ properties: PropertyDocument[]; total: number }> {
     const { minPrice, maxPrice, minArea, maxArea, type, page = 1, limit = 10 } = searchDto;
-    // const filter: any = { status: 'active' };
     const filter: any = {};
     if (minPrice) filter.price = { $gte: minPrice };
     if (maxPrice) filter.price = { ...filter.price, $lte: maxPrice };
@@ -113,14 +131,19 @@ export class PropertyService {
   }
 
   async getApprovedProperties(searchDto: SearchPropertyDto): Promise<{ properties: PropertyDocument[]; total: number }> {
-    const { minPrice, maxPrice, minArea, maxArea, type, page = 1, limit = 10 } = searchDto;
-    const filter: any = { status: StatusEnum.Active }; // Only active properties
+    const { minPrice, maxPrice, minArea, maxArea, type, beds, baths, rooms, homeType, page = 1, limit = 10 } = searchDto;
+    const filter: any = { status: StatusEnum.Active };
 
+    if (type) filter.type = type;
+    if (beds) filter.bedrooms = { $gte: beds };
+    if (baths) filter.bathrooms = { $gte: baths };
+    if (homeType && homeType !== "all") filter.propertyType = homeType;
     if (minPrice) filter.price = { $gte: minPrice };
     if (maxPrice) filter.price = { ...filter.price, $lte: maxPrice };
     if (minArea) filter.area = { $gte: minArea };
     if (maxArea) filter.area = { ...filter.area, $lte: maxArea };
-    if (type) filter.type = type;
+
+    if (rooms) filter.$expr = { $gte: [{ $add: ["$bedrooms", "$bathrooms"] }, rooms] }; // Sum bedrooms + bathrooms
 
     const properties = await this.propertyModel
       .find(filter)

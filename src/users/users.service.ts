@@ -104,7 +104,7 @@ export class UsersService {
     async requestRole(userId: string, role: string): Promise<{ message: string }> {
         const user = await this.findById(userId);
         if (!user) throw new NotFoundException('User not found');
-        if (user.roles.some(r => [RoleEnum.Seller, RoleEnum.Agent].includes(r))) {
+        if (user.roles.some(r => [RoleEnum.Agent].includes(r))) {
             throw new BadRequestException('User already has a role upgrade request or role');
         }
         // Add pending flag or request doc (simplified here with roles array)

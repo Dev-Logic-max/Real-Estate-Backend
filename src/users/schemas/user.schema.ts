@@ -58,6 +58,9 @@ export class User {
     location?: string;
   };
 
+  @Prop({ type: Number, default: 1000 })
+  credits?: number;
+
   @Prop({ enum: Object.values(StatusEnum), default: StatusEnum.Active })
   status: string;  // e.g., 'active', 'inactive'
 
