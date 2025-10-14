@@ -14,14 +14,14 @@ import { NotificationPurposeEnum } from 'src/common/enums/notification.enum';
 import { StatusEnum } from 'src/common/enums/status.enum';
 import { RoleEnum } from 'src/common/enums/role.enum';
 
-import * as fs from 'fs/promises'; 
-import * as path from 'path'; 
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 @Injectable()
 export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<PropertyDocument>,
-    private uploadService: UploadService, 
+    private uploadService: UploadService,
     private notificationService: NotificationService,
   ) { }
 
@@ -29,23 +29,37 @@ export class PropertyService {
     if (!user.roles.includes(RoleEnum.User) && !user.roles.includes(RoleEnum.Admin)) {
       throw new UnauthorizedException('Please create user account to create a property.');
     }
+    // if (user.status !== 'active') {
+    //   throw new UnauthorizedException('Only active users can create properties');
+    // }
     const newProperty = new this.propertyModel({
       ...createPropertyDto,
       ownerId: user.userId,
-      agents: [], // Initialize agents array
+      agents: [],
     });
     const savedProperty = await newProperty.save();
 
     const notificationDto: CreateNotificationDto = {
-      userId: user.userId, // Owner gets notified too
-      message: `A new property "${createPropertyDto.title}" has been created by ${user.firstName} ${user.lastName || ''}.`,
-      type: 'email',
-      allowedRoles: [RoleEnum.Admin, RoleEnum.User], // Notify admins and users
-      purpose: NotificationPurposeEnum.PROPERTY_CREATED,
+      userId: user.userId,
+      message: `Your property "${createPropertyDto.title}" has been submitted for admin approval.`,
+      type: 'in-app',
+      allowedRoles: [RoleEnum.Admin, RoleEnum.User], // Notify only the owner
+      purpose: NotificationPurposeEnum.PROPERTY_PENDING,
       relatedId: savedProperty._id?.toString(),
       relatedModel: 'Property',
     };
     await this.notificationService.send(notificationDto);
+
+    const adminNotificationDto: CreateNotificationDto = {
+      userId: user.userId, // Owner gets notified too
+      message: `A new property "${createPropertyDto.title}" has been created by ${user.firstName} ${user.lastName || ''}.`,
+      type: 'in-app',
+      allowedRoles: [RoleEnum.User], // Notify admins and users
+      purpose: NotificationPurposeEnum.PROPERTY_CREATED,
+      relatedId: savedProperty._id?.toString(),
+      relatedModel: 'Property',
+    };
+    await this.notificationService.send(adminNotificationDto);
 
     return savedProperty;
   }
@@ -156,7 +170,7 @@ export class PropertyService {
     return { properties, total };
   }
 
-  async updatePropertyStatusByAdmin(id: string, updateStatusDto: { status: string }, user: any): Promise<PropertyDocument> {
+  async updatePropertyStatusByAdmin(id: string, updateStatusDto: { status: string, purpose: string }, user: any): Promise<PropertyDocument> {
     if (!user.roles.includes(RoleEnum.Admin)) {
       throw new UnauthorizedException('Only admins can update property status');
     }
@@ -168,6 +182,7 @@ export class PropertyService {
       throw new BadRequestException(`Property is already ${property.status}`);
     }
     property.status = updateStatusDto.status;
+    property.purpose = updateStatusDto.purpose;
     const updatedProperty = await property.save();
 
     // Send notification to owner and admin
@@ -176,7 +191,7 @@ export class PropertyService {
       message: `Your property "${property.title}" status has been updated to ${updatedProperty.status}.`,
       type: 'in-app',
       allowedRoles: [RoleEnum.Admin], // Notify admins and the owner (via userId)
-      purpose: NotificationPurposeEnum.PROPERTY_STATUS_CHANGED,
+      purpose: NotificationPurposeEnum.PROPERTY_APPROVED,
       relatedId: property._id?.toString(),
       relatedModel: 'Property',
     };

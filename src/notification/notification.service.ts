@@ -35,6 +35,7 @@ export class NotificationService {
       relatedModel,
       firstName: user.firstName,
       lastName: user.lastName,
+      roles: user.roles,
       profilePhotos: user.profilePhotos || [],
     });
     await baseNotification.save();

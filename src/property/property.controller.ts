@@ -47,7 +47,7 @@ export class PropertyController {
   @ApiOkResponse({ description: 'Property status updated' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleEnum.Admin)
-  updateStatus(@Param('id') id: string, @Body() updateStatusDto: { status: string }, @Request() req) {
+  updateStatus(@Param('id') id: string, @Body() updateStatusDto: { status: string, purpose: string }, @Request() req) {
     return this.propertyService.updatePropertyStatusByAdmin(id, updateStatusDto, req.user);
   }
 
