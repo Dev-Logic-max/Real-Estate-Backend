@@ -4,7 +4,6 @@
 /build
 
 # Ignore .env file
-.env
 uploads/
 
 # Logs
@@ -40,11 +39,9 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # dotenv environment variable files
-.env
 .env.development.local
 .env.test.local
 .env.production.local
-.env.local
 
 # temp directory
 .temp
@@ -58,3 +55,6 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+temp_auto_push.bat
+temp_interactive_push.bat
+config.bat
